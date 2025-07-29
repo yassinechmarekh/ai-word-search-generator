@@ -59,22 +59,55 @@ export async function generatePDF(
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
 
-  // Define grid parameters (template-specific sizing)
   const GRID_SIZE = 20;
-  let CELL_SIZE = 8; // Default cell size
+  const CELL_SIZE = 8;
+  const gridHeight = GRID_SIZE * CELL_SIZE;
+
+  const titleHeight = 10;
+  const themeHeight = 10;
+  const instructionsHeight = 10;
+  const spacingAfterGrid = 10;
+
+  // Constantes pour la liste de mots
+  const wordsPerRow = 3;
+  const maxWords = Math.max(...puzzles.map((p) => p.words.length));
+  const maxWordRows = Math.ceil(maxWords / wordsPerRow);
+  const wordListTitleHeight = 5;
+  const wordListLineHeight = 8;
+  const wordListHeight =
+    wordListTitleHeight + 15 + maxWordRows * wordListLineHeight;
+
+  // Hauteur totale du contenu
+  const totalContentHeight =
+    titleHeight +
+    themeHeight +
+    instructionsHeight +
+    gridHeight +
+    spacingAfterGrid +
+    wordListHeight;
+
+  // Décalage vertical global pour centrer
+  const verticalStartY = (pageHeight - totalContentHeight) / 2;
+
+  // Positions fixes à utiliser partout
+  const titleY = verticalStartY + titleHeight / 2;
+  const themeY = titleY + themeHeight;
+  const instructionY1 = themeY + 8;
+  const instructionY2 = instructionY1 + 5;
+  const GRID_START_Y = instructionY2 + 10;
+  const wordsStartY = GRID_START_Y + gridHeight + spacingAfterGrid;
+
+  // Define grid parameters (template-specific sizing)
   let GRID_START_X: number;
-  let GRID_START_Y: number;
 
   // Calculate grid positioning - CENTRÉ
   GRID_START_X = (pageWidth - GRID_SIZE * CELL_SIZE) / 2;
-  GRID_START_Y = 55; // Augmenté pour laisser plus d'espace au titre
 
   // Define word list parameters - CENTRÉ
-  const wordsPerRow = 3;
   const totalWordsWidth = pageWidth * 0.8; // 80% de la largeur de la page
   const columnWidth = totalWordsWidth / wordsPerRow;
   const startX = (pageWidth - totalWordsWidth) / 2; // Centré horizontalement
-  const wordsStartY = GRID_START_Y + GRID_SIZE * CELL_SIZE + 15; // Plus d'espace après la grille
+  //   const wordsStartY = GRID_START_Y + GRID_SIZE * CELL_SIZE + 15; // Plus d'espace après la grille
 
   // Template-specific styles
   let titleFont: [string, string] = ["helvetica", "bold"];
@@ -86,7 +119,6 @@ export async function generatePDF(
   let cellLineWidth = 0.2;
   let showCheckboxes = false;
   let wordListFontSize = 11;
-  let wordListLineHeight = 8;
 
   switch (templateName) {
     case "Theme 1 (Checkboxes)":
@@ -99,7 +131,6 @@ export async function generatePDF(
       cellLineWidth = 0.2;
       showCheckboxes = true;
       wordListFontSize = 11;
-      wordListLineHeight = 8;
       break;
     case "Theme 2 (Dashed)":
       titleFont = ["Comic Sans MS", "bold"];
@@ -111,7 +142,6 @@ export async function generatePDF(
       cellLineWidth = 0.3;
       showCheckboxes = false;
       wordListFontSize = 11;
-      wordListLineHeight = 8;
       break;
     case "Theme 3 (Table)":
       titleFont = ["Comic Sans MS", "bold"];
@@ -123,7 +153,6 @@ export async function generatePDF(
       cellLineWidth = 0.2;
       showCheckboxes = false;
       wordListFontSize = 12;
-      wordListLineHeight = 8;
       break;
     default:
       // Fallback to Classic
@@ -136,7 +165,6 @@ export async function generatePDF(
       cellLineWidth = 0.2;
       showCheckboxes = true;
       wordListFontSize = 11;
-      wordListLineHeight = 8;
       break;
   }
 
@@ -169,18 +197,20 @@ export async function generatePDF(
       const titleBoxX = (pageWidth - titleBoxWidth) / 2;
       pdf.setDrawColor(0, 0, 0);
       pdf.setLineWidth(0.5);
-      drawDashedRect(pdf, titleBoxX, 15, titleBoxWidth, 12);
+      drawDashedRect(pdf, titleBoxX, titleY - 14, titleBoxWidth, 12);
 
       // Add title with # symbol
       pdf.setFontSize(20);
       pdf.setFont(titleFont[0], titleFont[1]);
       pdf.setTextColor(0, 0, 0);
-      pdf.text(`# PUZZLE ${puzzle.id}`, pageWidth / 2, 24, { align: "center" });
+      pdf.text(`# PUZZLE ${puzzle.id}`, pageWidth / 2, titleY - 5, {
+        align: "center",
+      });
 
       pdf.setFontSize(16);
       pdf.setFont(bodyFont[0], bodyFont[1]);
       pdf.setTextColor(50, 50, 50);
-      pdf.text(`Theme: ${theme}`, pageWidth / 2, 35, { align: "center" });
+      pdf.text(`Theme: ${theme}`, pageWidth / 2, themeY, { align: "center" });
 
       // Add instructions
       pdf.setFontSize(12);
@@ -189,7 +219,7 @@ export async function generatePDF(
       pdf.text(
         `Find and circle the ${puzzle.words.length} hidden words in the grid below.`,
         pageWidth / 2,
-        44,
+        instructionY1,
         {
           align: "center",
         }
@@ -198,7 +228,7 @@ export async function generatePDF(
       pdf.text(
         "Words can be found horizontally, vertically, or diagonally in any direction.",
         pageWidth / 2,
-        49,
+        instructionY2,
         {
           align: "center",
         }
@@ -208,12 +238,16 @@ export async function generatePDF(
       pdf.setFontSize(28);
       pdf.setFont(titleFont[0], titleFont[1]);
       pdf.setTextColor(0, 0, 0);
-      pdf.text(`# Puzzle ${puzzle.id}`, pageWidth / 2, 20, { align: "center" });
+      pdf.text(`# Puzzle ${puzzle.id}`, pageWidth / 2, titleY, {
+        align: "center",
+      });
 
       pdf.setFontSize(16);
       pdf.setFont(bodyFont[0], bodyFont[1]);
       pdf.setTextColor(50, 50, 50);
-      pdf.text(`Theme: ${theme}`, pageWidth / 2, 30, { align: "center" });
+      pdf.text(`Theme: ${theme}`, pageWidth / 2, themeY, {
+        align: "center",
+      });
 
       // Add instructions
       pdf.setFontSize(12);
@@ -221,7 +255,7 @@ export async function generatePDF(
       pdf.text(
         `Find and circle the ${puzzle.words.length} hidden words in the grid below.`,
         pageWidth / 2,
-        40,
+        instructionY1,
         {
           align: "center",
         }
@@ -231,14 +265,14 @@ export async function generatePDF(
       pdf.text(
         "Words can be found horizontally, vertically, or diagonally in any direction.",
         pageWidth / 2,
-        45,
+        instructionY2,
         {
           align: "center",
         }
       );
     }
 
-    // Draw puzzle grid - DÉJÀ CENTRÉ
+    // Draw puzzle grid
     pdf.setDrawColor(
       gridBorderColor[0],
       gridBorderColor[1],
@@ -278,8 +312,8 @@ export async function generatePDF(
 
     // Add words list
     if (templateName === "Theme 2 (Dashed)") {
-      // Draw dashed border around words section - CENTRÉ
-      const wordsBoxY = wordsStartY + 10;
+      // Draw dashed border around words section
+      const wordsBoxY = wordsStartY;
       const wordsBoxHeight =
         Math.ceil(puzzle.words.length / wordsPerRow) * wordListLineHeight + 20;
       const wordsBoxWidth = totalWordsWidth;
@@ -310,7 +344,7 @@ export async function generatePDF(
         pdf.text(word.toUpperCase(), x, y, { align: "center" });
       });
     } else if (templateName === "Theme 3 (Table)") {
-      const wordsBoxY = wordsStartY + 10;
+      const wordsBoxY = wordsStartY;
       const cellH = 10;
       const cellW = totalWordsWidth / wordsPerRow;
       const rows = Math.ceil(puzzle.words.length / wordsPerRow);
@@ -404,18 +438,20 @@ export async function generatePDF(
       const titleBoxX = (pageWidth - titleBoxWidth) / 2;
       pdf.setDrawColor(0, 0, 0);
       pdf.setLineWidth(0.5);
-      drawDashedRect(pdf, titleBoxX, 15, titleBoxWidth, 12);
+      drawDashedRect(pdf, titleBoxX, titleY - 14, titleBoxWidth, 12);
 
       // Answer page title
       pdf.setFontSize(20);
       pdf.setFont(titleFont[0], titleFont[1]);
       pdf.setTextColor(0, 0, 0);
-      pdf.text(`# ANSWER ${puzzle.id}`, pageWidth / 2, 24, { align: "center" });
+      pdf.text(`# ANSWER ${puzzle.id}`, pageWidth / 2, titleY - 5, {
+        align: "center",
+      });
 
       pdf.setFontSize(16);
       pdf.setFont(bodyFont[0], bodyFont[1]);
       pdf.setTextColor(50, 50, 50);
-      pdf.text(`Theme: ${theme}`, pageWidth / 2, 37, { align: "center" });
+      pdf.text(`Theme: ${theme}`, pageWidth / 2, themeY, { align: "center" });
 
       pdf.setFontSize(12);
       pdf.setFont(bodyFont[0], bodyFont[1]);
@@ -423,7 +459,7 @@ export async function generatePDF(
       pdf.text(
         "Did you find them all? Check your answers below!",
         pageWidth / 2,
-        47,
+        instructionY1,
         { align: "center" }
       );
     } else {
@@ -431,12 +467,14 @@ export async function generatePDF(
       pdf.setFontSize(28);
       pdf.setFont(titleFont[0], titleFont[1]);
       pdf.setTextColor(0, 0, 0);
-      pdf.text(`# Answer ${puzzle.id}`, pageWidth / 2, 20, { align: "center" });
+      pdf.text(`# Answer ${puzzle.id}`, pageWidth / 2, titleY, {
+        align: "center",
+      });
 
       pdf.setFontSize(16);
       pdf.setFont(bodyFont[0], bodyFont[1]);
       pdf.setTextColor(50, 50, 50);
-      pdf.text(`Theme: ${theme}`, pageWidth / 2, 30, { align: "center" });
+      pdf.text(`Theme: ${theme}`, pageWidth / 2, themeY, { align: "center" });
 
       // Add instructions
       pdf.setFontSize(12);
@@ -444,14 +482,14 @@ export async function generatePDF(
       pdf.text(
         `Did you find them all? Check your answers below!`,
         pageWidth / 2,
-        40,
+        instructionY1,
         {
           align: "center",
         }
       );
     }
 
-    // Draw solution grid - DÉJÀ CENTRÉ
+    // Draw solution grid
     pdf.setFontSize(10);
     pdf.setFont(gridFont[0], gridFont[1]);
 
@@ -496,10 +534,10 @@ export async function generatePDF(
       GRID_SIZE * CELL_SIZE
     );
 
-    // Add words list for answer key - MÊME LOGIQUE CENTRÉE QUE POUR LES PUZZLES
+    // Add words list for answer key
     if (templateName === "Theme 2 (Dashed)") {
-      // Draw dashed border around words found section - CENTRÉ
-      const wordsBoxY = wordsStartY + 10;
+      // Draw dashed border around words found section
+      const wordsBoxY = wordsStartY;
       const wordsBoxHeight =
         Math.ceil(puzzle.words.length / wordsPerRow) * wordListLineHeight + 20;
       const wordsBoxWidth = totalWordsWidth;
@@ -530,7 +568,7 @@ export async function generatePDF(
         pdf.text(word.toUpperCase(), x, y, { align: "center" });
       });
     } else if (templateName === "Theme 3 (Table)") {
-      const wordsBoxY = wordsStartY + 10;
+      const wordsBoxY = wordsStartY;
       const cellH = 10;
       const cellW = totalWordsWidth / wordsPerRow;
       const rows = Math.ceil(puzzle.words.length / wordsPerRow);
@@ -538,7 +576,7 @@ export async function generatePDF(
       const tableX = (pageWidth - tableWidth) / 2;
       const tableY = wordsBoxY + 10;
 
-      // Title box - CENTRÉ
+      // Title box
       pdf.setFontSize(13);
       pdf.setFont(titleFont[0], titleFont[1]);
       pdf.setLineWidth(0.7);
