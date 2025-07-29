@@ -53,7 +53,11 @@ export async function generatePDF(
   theme: string,
   templateName: string
 ): Promise<void> {
-  const pdf = new jsPDF("p", "mm", "a4");
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "in",
+    format: [8.5, 11],
+  });
   pdf.setFont("Comic Sans MS", "normal");
   pdf.setFont("Comic Sans MS", "bold");
   const pageWidth = pdf.internal.pageSize.getWidth();
